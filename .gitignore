@@ -22,6 +22,7 @@
 
 # vscode project specific settings file
 .vscode
+.history
 
 cleanup.sh
 FanFictionDownLoader.zip
