@@ -2245,7 +2245,7 @@ msgid "New URL: <a href=\"%(newurl)s\">%(newurl)s</a>"
 msgstr "新しいURL: <a href=\"%(newurl)s\">%(newurl)s</a>"
 
 #: fff_plugin.py:1526 fff_plugin.py:1591
-msgid "Click '<b>Yes</b>' to a new book with new URL."
+msgid "Click '<b>Yes</b>' to create a new book with new URL."
 msgstr "「<b>はい</b>」を押して、新しいURLで新しい本を追加します。"
 
 #: fff_plugin.py:1527 fff_plugin.py:1592

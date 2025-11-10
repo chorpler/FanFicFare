@@ -2039,7 +2039,7 @@ msgid "New URL: <a href=\"%(newurl)s\">%(newurl)s</a>"
 msgstr ""
 
 #: fff_plugin.py:1526 fff_plugin.py:1591
-msgid "Click '<b>Yes</b>' to a new book with new URL."
+msgid "Click '<b>Yes</b>' to create a new book with new URL."
 msgstr ""
 
 #: fff_plugin.py:1527 fff_plugin.py:1592
