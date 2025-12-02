@@ -95,6 +95,49 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
         self.story.setMetadata('storyId',self.parsedUrl.path.split('/',)[-1])
         # logger.debug("language:%s"%self.story.getMetadata('language'))
 
+    ## apply clean_chapter_titles
+    def add_chapter(self,chapter_title,url,othermeta={}):
+        if self.getConfig("clean_chapter_titles"):
+            storytitle = self.story.getMetadata('title').lower()
+            chapter_name_type = None
+            # strip trailing ch or pt before doing the chapter clean.
+            # doesn't remove from story title metadata
+            storytitle = re.sub(r'^(.*?)( (ch|pt))?$',r'\1',storytitle)
+            if chapter_title.lower().startswith(storytitle):
+                chapter = chapter_title[len(storytitle):].strip()
+                # logger.debug('\tChapter: "%s"' % chapter)
+                if chapter == '':
+                    chapter_title = 'Chapter %d' % (self.num_chapters() + 1)
+                    # Sometimes the first chapter does not have type of chapter
+                    if self.num_chapters() == 0:
+                        # logger.debug('\tChapter: first chapter without chapter type')
+                        chapter_name_type = None
+                else:
+                    separater_char = chapter[0]
+                    # logger.debug('\tseparater_char: "%s"' % separater_char)
+                    chapter = chapter[1:].strip() if separater_char in [":", "-"] else chapter
+                    # logger.debug('\tChapter: "%s"' % chapter)
+                    if chapter.lower().startswith('ch.'):
+                        chapter = chapter[len('ch.'):].strip()
+                        try:
+                            chapter_title = 'Chapter %d' % int(chapter)
+                        except:
+                            chapter_title = 'Chapter %s' % chapter
+                        chapter_name_type = 'Chapter' if chapter_name_type is None else chapter_name_type
+                        # logger.debug('\tChapter: chapter_name_type="%s"' % chapter_name_type)
+                    elif chapter.lower().startswith('pt.'):
+                        chapter = chapter[len('pt.'):].strip()
+                        try:
+                            chapter_title = 'Part %d' % int(chapter)
+                        except:
+                            chapter_title = 'Part %s' % chapter
+                        chapter_name_type = 'Part' if chapter_name_type is None else chapter_name_type
+                        # logger.debug('\tChapter: chapter_name_type="%s"' % chapter_name_type)
+                    elif separater_char in [":", "-"]:
+                        chapter_title = chapter
+                        # logger.debug('\tChapter: taking chapter text as whole')
+        super(LiteroticaSiteAdapter, self).add_chapter(chapter_title,url,othermeta)
+
     def extractChapterUrlsAndMetadata(self):
         """
         In April 2024, site introduced significant changes, including
@@ -182,12 +225,14 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
         else: # if all else fails
             self.story.setMetadata('authorId', stripHTML(authora))
 
-        if soup.select('div#tabpanel-tags'):
-            # logger.debug("tags1")
-            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div#tabpanel-tags a.av_as') ])
-        if soup.select('div[class^="_widget__tags_"]'):
-            # logger.debug("tags2")
-            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tags__link_"]') ])
+        ## Collect tags from series/story page if tags_from_chapters is enabled
+        if self.getConfig("tags_from_chapters"):
+            if soup.select('div#tabpanel-tags'):
+                # logger.debug("tags1")
+                self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div#tabpanel-tags a.av_as') ])
+            if soup.select('div[class^="_widget__tags_"]'):
+                # logger.debug("tags2")
+                self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tags__link_"]') ])
         # logger.debug(self.story.getList('eroticatags'))
 
         ## look first for 'Series Introduction', then Info panel short desc
@@ -250,7 +295,8 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
             ## Multi-chapter stories.  AKA multi-part 'Story Series'.
             bn_antags = soup.select('div#tabpanel-info p.bn_an')
             # logger.debug(bn_antags)
-            if bn_antags:
+            if bn_antags and not self.getConfig("dates_from_chapters"):
+                ## Use dates from series metadata unless dates_from_chapters is enabled
                 dates = []
                 for datetag in bn_antags[:2]:
                     datetxt = stripHTML(datetag)
@@ -272,52 +318,11 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
             ## category from chapter list
             self.story.extendList('category',[ stripHTML(t) for t in soup.select('a.br_rl') ])
 
-            storytitle = self.story.getMetadata('title').lower()
-            chapter_name_type = None
             for chapteratag in soup.select('a.br_rj'):
                 chapter_title = stripHTML(chapteratag)
                 # logger.debug('\tChapter: "%s"' % chapteratag)
-                if self.getConfig("clean_chapter_titles"):
-                    # strip trailing ch or pt before doing the chapter clean.
-                    # doesn't remove from story title metadata
-                    storytitle = re.sub(r'^(.*?)( (ch|pt))?$',r'\1',storytitle)
-                    if chapter_title.lower().startswith(storytitle):
-                        chapter = chapter_title[len(storytitle):].strip()
-                        # logger.debug('\tChapter: "%s"' % chapter)
-                        if chapter == '':
-                            chapter_title = 'Chapter %d' % (self.num_chapters() + 1)
-                            # Sometimes the first chapter does not have type of chapter
-                            if self.num_chapters() == 0:
-                                # logger.debug('\tChapter: first chapter without chapter type')
-                                chapter_name_type = None
-                        else:
-                            separater_char = chapter[0]
-                            # logger.debug('\tseparater_char: "%s"' % separater_char)
-                            chapter = chapter[1:].strip() if separater_char in [":", "-"] else chapter
-                            # logger.debug('\tChapter: "%s"' % chapter)
-                            if chapter.lower().startswith('ch.'):
-                                chapter = chapter[len('ch.'):].strip()
-                                try:
-                                    chapter_title = 'Chapter %d' % int(chapter)
-                                except:
-                                    chapter_title = 'Chapter %s' % chapter
-                                chapter_name_type = 'Chapter' if chapter_name_type is None else chapter_name_type
-                                # logger.debug('\tChapter: chapter_name_type="%s"' % chapter_name_type)
-                            elif chapter.lower().startswith('pt.'):
-                                chapter = chapter[len('pt.'):].strip()
-                                try:
-                                    chapter_title = 'Part %d' % int(chapter)
-                                except:
-                                    chapter_title = 'Part %s' % chapter
-                                chapter_name_type = 'Part' if chapter_name_type is None else chapter_name_type
-                                # logger.debug('\tChapter: chapter_name_type="%s"' % chapter_name_type)
-                            elif separater_char in [":", "-"]:
-                                chapter_title = chapter
-                                # logger.debug('\tChapter: taking chapter text as whole')
-
                 # /series/se does include full URLs current.
                 chapurl = chapteratag['href']
-
                 # logger.debug("Chapter URL: " + chapurl)
                 self.add_chapter(chapter_title, chapurl)
 
@@ -327,6 +332,7 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                 self.setCoverImage(self.url,coverimg['src'])
 
         #### Attempting averrating from JS metadata.
+        #### also alternate chapters from json
         try:
             state_start="state='"
             state_end="'</script>"
@@ -345,10 +351,43 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                     ## series
                     elif 'series' in json_state:
                         all_rates = [ float(x['rate_all']) for x in json_state['series']['works'] ]
+
+                        ## Extract dates from chapter approval dates if dates_from_chapters is enabled
+                        if self.getConfig("dates_from_chapters"):
+                            date_approvals = []
+                            for work in json_state['series']['works']:
+                                if 'date_approve' in work:
+                                    try:
+                                        date_approvals.append(makeDate(work['date_approve'], self.dateformat))
+                                    except:
+                                        pass
+                            if date_approvals:
+                                # Oldest date is published, newest is updated
+                                date_approvals.sort()
+                                self.story.setMetadata('datePublished', date_approvals[0])
+                                self.story.setMetadata('dateUpdated', date_approvals[-1])
                     if all_rates:
                         self.story.setMetadata('averrating', '%4.2f' % (sum(all_rates) / float(len(all_rates))))
+
+                    ## alternate chapters from JSON
+                    if self.num_chapters() < 1:
+                        logger.debug("Getting Chapters from series JSON")
+                        seriesid = json_state.get('series',{}).get('coversSeriesId',None)
+                        if seriesid:
+                            logger.info("Fetching chapter data from JSON")
+                            logger.debug(seriesid)
+                            series_json = json.loads(self.get_request('https://literotica.com/api/3/series/%s/works'%seriesid))
+                            # logger.debug(json.dumps(series_json, sort_keys=True,indent=2, separators=(',', ':')))
+                            for chap in series_json:
+                                self.add_chapter(chap['title'], 'https://www.literotica.com/s/'+chap['url'])
+
+                                ## Collect tags from series/story page if tags_from_chapters is enabled
+                                if self.getConfig("tags_from_chapters"):
+                                    self.story.extendList('eroticatags', [ stripHTML(t['tag']).title() for t in chap['tags'] ])
+
+
         except Exception as e:
-            logger.debug("Processing JSON to find averrating failed. (%s)"%e)
+            logger.warning("Processing JSON failed. (%s)"%e)
 
         ## Features removed because not supportable by new site form:
         ## averrating metadata entry
@@ -507,7 +546,7 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
         import json
         last_page = int(js_story_list.group('last_page'))
         current_page = int(js_story_list.group('current_page')) + 1
-        # Fetching the remaining urls from api. Can't trust the number given about the pages left from a website. Sometimes even the api returns outdated number of pages. 
+        # Fetching the remaining urls from api. Can't trust the number given about the pages left from a website. Sometimes even the api returns outdated number of pages.
         while current_page <= last_page:
             i = len(urls)
             logger.debug("Pages %s/%s"%(current_page, int(last_page)))
