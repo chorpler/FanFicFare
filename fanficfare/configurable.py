@@ -208,7 +208,6 @@ def get_valid_set_options():
                'remove_empty_p':(None,None,boollist),
                'sort_ships':(None,None,boollist),
                'strip_chapter_numbers':(None,None,boollist),
-               'remove_class_chapter':(None,None,boollist),
                'mark_new_chapters':(None,None,boollist+['latestonly']),
                'titlepage_use_table':(None,None,boollist),
                'decode_emails':(None,None,boollist),
@@ -271,6 +270,7 @@ def get_valid_set_options():
                'order_chapters_by_date':(['literotica.com'],None,boollist),
                'tags_from_chapters':(['literotica.com'],None,boollist),
                'dates_from_chapters':(['literotica.com'],None,boollist),
+               'include_chapter_descriptions_in_summary':(['literotica.com'],None,boollist),
 
                'inject_chapter_title':(['asianfanfics.com']+wpc_list,None,boollist),
                'inject_chapter_image':(['asianfanfics.com'],None,boollist),
@@ -528,6 +528,7 @@ def get_valid_keywords():
                  'fetch_stories_from_api',
                  'tags_from_chapters',
                  'dates_from_chapters',
+                 'include_chapter_descriptions_in_summary',
                  'inject_chapter_title',
                  'inject_chapter_image',
                  'append_datepublished_to_storyurl',

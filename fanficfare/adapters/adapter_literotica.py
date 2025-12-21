@@ -225,31 +225,29 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
         else: # if all else fails
             self.story.setMetadata('authorId', stripHTML(authora))
 
-        ## Collect tags from series/story page if tags_from_chapters is enabled
-        if self.getConfig("tags_from_chapters"):
-            if soup.select('div#tabpanel-tags'):
-                # logger.debug("tags1")
-                self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div#tabpanel-tags a.av_as') ])
-            if soup.select('div[class^="_widget__tags_"]'):
-                # logger.debug("tags2")
-                self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tags__link_"]') ])
+        if soup.select('div#tabpanel-tags'):
+            # logger.debug("tags1")
+            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div#tabpanel-tags a.av_as') ])
+        if soup.select('div[class^="_widget__tags_"]'):
+            # logger.debug("tags2")
+            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tags__link_"]') ])
         # logger.debug(self.story.getList('eroticatags'))
 
         ## look first for 'Series Introduction', then Info panel short desc
         ## series can have either, so put in common code.
+        desc = []
         introtag = soup.select_one('div.bp_rh')
-        descdiv = soup.select_one('div#tabpanel-info div.bn_B')
-        if not descdiv:
-            descdiv = soup.select_one('div[class^="_tab__pane_"] div[class^="_widget__info_"]')
+        descdiv = soup.select_one('div#tabpanel-info div.bn_B') or \
+                  soup.select_one('div[class^="_tab__pane_"] div[class^="_widget__info_"]')
         if introtag and stripHTML(introtag):
             # make sure there's something in the tag.
             # logger.debug("intro %s"%introtag)
-            self.setDescription(self.url,introtag)
+            desc.append(unicode(introtag))
         elif descdiv and stripHTML(descdiv):
             # make sure there's something in the tag.
             # logger.debug("desc %s"%descdiv)
-            self.setDescription(self.url,descdiv)
-        else:
+            desc.append(unicode(descdiv))
+        if not desc or self.getConfig("include_chapter_descriptions_in_summary"):
             ## Only for backward compatibility with 'stories' that
             ## don't have an intro or short desc.
             descriptions = []
@@ -259,7 +257,9 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                 descriptions.append("%d. %s" % (i + 1, stripHTML(chapterdesctag)))
                 # now put it back--it's used below
                 chapterdesctag.append(a)
-            self.setDescription(authorurl,"<p>"+"</p>\n<p>".join(descriptions)+"</p>")
+            desc.append(unicode("<p>"+"</p>\n<p>".join(descriptions)+"</p>"))
+
+        self.setDescription(self.url,u''.join(desc))
 
         if isSingleStory:
             ## one-shots don't *display* date info, but they have it
@@ -275,6 +275,12 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                 dateval = makeDate(date.group(1), self.dateformat)
                 self.story.setMetadata('datePublished', dateval)
                 self.story.setMetadata('dateUpdated', dateval)
+
+            ## one-shots don't have same json data to get aver_rating
+            ## from below. This kludge matches the data_approve
+            rateall = re.search(r'rate_all:([\d\.]+)',data)
+            if rateall:
+                self.story.setMetadata('averrating', '%4.2f' % float(rateall.group(1)))
 
             ## one-shots assumed completed.
             self.story.setMetadata('status','Completed')
@@ -345,11 +351,7 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                     json_state = json.loads(state)
                     # logger.debug(json.dumps(json_state, sort_keys=True,indent=2, separators=(',', ':')))
                     all_rates = []
-                    ## one-shot
-                    if 'story' in json_state:
-                        all_rates = [ float(json_state['story']['data']['rate_all']) ]
-                    ## series
-                    elif 'series' in json_state:
+                    if 'series' in json_state:
                         all_rates = [ float(x['rate_all']) for x in json_state['series']['works'] ]
 
                         ## Extract dates from chapter approval dates if dates_from_chapters is enabled
@@ -372,7 +374,7 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
                     ## alternate chapters from JSON
                     if self.num_chapters() < 1:
                         logger.debug("Getting Chapters from series JSON")
-                        seriesid = json_state.get('series',{}).get('coversSeriesId',None)
+                        seriesid = json_state.get('series',{}).get('data',{}).get('id',None)
                         if seriesid:
                             logger.info("Fetching chapter data from JSON")
                             logger.debug(seriesid)
