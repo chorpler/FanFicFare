@@ -263,7 +263,6 @@ def get_valid_set_options():
                'romancecat_to_characters_ships':(['tthfanfic.org'],None,boollist),
 
                'use_meta_keywords':(['literotica.com'],None,boollist),
-               'chapter_categories_use_all':(['literotica.com'],None,boollist),
                'clean_chapter_titles':(['literotica.com'],None,boollist),
                'description_in_chapter':(['literotica.com'],None,boollist),
                'fetch_stories_from_api':(['literotica.com'],None,boollist),
@@ -288,6 +287,7 @@ def get_valid_set_options():
 
                'calibre_series_meta':(None,['epub'],boollist),
                'force_update_epub_always':(None,['epub'],boollist),
+               'page_progression_direction_rtl':(None,['epub'],boollist),
 
                'windows_eol':(None,['txt'],boollist),
 
@@ -325,6 +325,7 @@ def get_valid_set_options():
                'use_threadmarks_cover':(base_xenforo2_list,None,boollist),
                'skip_sticky_first_posts':(base_xenforo2_list,None,boollist),
                'include_dice_rolls':(base_xenforo2_list,None,boollist+['svg']),
+               'include_nonauthor_poster':(base_xenforo2_list,None,boollist),
                'include_chapter_banner_images':(['wattpad.com'],None,boollist),
                'dateUpdated_method':(['wattpad.com'],None,['modifyDate', 'lastPublishedPart']),
                'fix_excess_space': (['novelonlinefull.com', 'novelall.com'], ['epub', 'html'], boollist),
@@ -461,6 +462,7 @@ def get_valid_keywords():
                  'logpage_at_end',
                  'calibre_series_meta',
                  'force_update_epub_always',
+                 'page_progression_direction_rtl',
                  'include_subject_tags',
                  'include_titlepage',
                  'include_tocpage',
@@ -520,7 +522,6 @@ def get_valid_keywords():
                  'pairingcat_to_characters_ships',
                  'romancecat_to_characters_ships',
                  'use_meta_keywords',
-                 'chapter_categories_use_all',
                  'clean_chapter_titles',
                  'conditionals_use_lists',
                  'description_in_chapter',
@@ -607,6 +608,7 @@ def get_valid_keywords():
                  'use_threadmarks_cover',
                  'skip_sticky_first_posts',
                  'include_dice_rolls',
+                 'include_nonauthor_poster',
                  'include_chapter_banner_images',
                  'dateUpdated_method',
                  'datethreadmark_format',
@@ -818,7 +820,8 @@ class Configuration(ConfigParser):
 
     # split and strip each.
     def get_config_list(self, sections, key, default=[]):
-        vlist = re.split(r'(?<!\\),',self.get_config(sections,key)) # don't split on \,
+        ## "%s" to make false > "false"  Rare corner case, probably accidental
+        vlist = re.split(r'(?<!\\),',"%s"%self.get_config(sections,key)) # don't split on \,
         vlist = [x for x in [ v.strip().replace(r'\,',',') for v in vlist ] if x !='']
         if not vlist:
             return default
