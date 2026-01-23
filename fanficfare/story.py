@@ -23,6 +23,7 @@ import datetime
 from math import floor
 import base64
 import hashlib
+import uuid
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ from . import six
 from .six.moves.urllib.parse import (urlparse, urlunparse)
 from .six import text_type as unicode
 from .six import string_types as basestring
-from .six import ensure_binary
+from .six import ensure_binary, ensure_str
 
 import bs4
 
@@ -53,6 +54,7 @@ imagetypes = {
     'png':'image/png',
     'gif':'image/gif',
     'svg':'image/svg+xml',
+    'webp':'image/webp',
     }
 
 try:
@@ -578,29 +580,48 @@ def make_chapter_text_replacements(replace):
     # print("replace lines:%s"%len(retval))
     return retval
 
-class StoryImage(dict):
-    pass
+## uuid5 needs a namespace UUID object.  This is a random uuid2 one we
+## can all use so our uuids always match.
+IMG_NS = uuid.UUID('5d976d9e-7d55-4e9e-975a-8cec6c69f98e')
+def url2uuid(url):
+    return unicode(uuid.uuid5(IMG_NS,ensure_str(url)))
 
 class ImageStore:
-    def __init__(self):
+    def __init__(self,dedup=False):
         self.prefix='ffdl'
         self.cover_name='cover'
 
         ## list of dicts, one per image
         self.infos=[]
-        ## index of image urls, not including cover.
+        ## index of image urls->uuid, not including cover.
         self.url_index={}
+        ## index of image uuid->info, not including cover.
+        self.uuid_index={}
         ## dict of img sizes -> lists of info dicts
         ## size_index contains list for case of different images of same size.
         self.size_index=defaultdict(list)
         self.cover = None
+        self.dedup = dedup
 
     # returns newsrc
-    def add_img(self,url,ext,mime,data,cover=False,):
+    def add_img(self,url,ext=None,mime=None,data=None,cover=False,actuallyused=True,failure=False):
+        # logger.debug("add_img0(%s,%s,%s)"%(url,ext,mime))
+        # existing ffdl image, likely from CSS
+        m = re.match(r'^images/'+self.prefix+r'-(?P<uuid>[0-9a-fA-F-]+)\.(?P<ext>.+)$',url)
+        if m:
+            # logger.debug("---- uuid from match")
+            uuid = m.group('uuid')
+        else:
+            # logger.debug("---- uuid from URL")
+            uuid = url2uuid(url)
         info = {'url':url,
+                'uuid':uuid,
                 'ext':ext,
                 #'newsrc':newsrc, # set below
                 'mime':mime,
+                # for the admittedly rare case of an updating epub
+                # *not* needing all the images is already contains.
+                'actuallyused':actuallyused,
                 'data':data}
         if cover:
             info['newsrc'] = "images/%s.%s"%(self.cover_name,ext)
@@ -615,29 +636,72 @@ class ImageStore:
         else:
             info['newsrc'] = "images/%s-%s.%s"%(
                 self.prefix,
-                len(self.url_index),
+                uuid,
                 ext)
-            self.infos.append(info)
-            self.url_index[url]=info
-            self.size_index[len(data)].append(info)
+            ## Replace info out right if it's a dup image
+            was_deduped = False
+            if self.dedup and data:
+                same_sz_imgs = self.get_imgs_by_size(len(data))
+                for szimg in same_sz_imgs:
+                    if data == szimg['data']:
+                        # matching data, duplicate file with a different URL.
+                        logger.info("found duplicate image: %s, %s"%(szimg['newsrc'],
+                                                                     szimg['url']))
+                        info = szimg
+                        was_deduped = True
+                        break
+            ## I believe this can theoretically end up with more than
+            ## one 'info' hash for the same file if an image is in
+            ## both CSS and <img longdesc>
+            if url not in self.url_index:
+                self.url_index[url]=uuid
+            if uuid not in self.uuid_index:
+                self.uuid_index[uuid]=info
+                if data and not was_deduped:
+                    self.infos.append(info)
+                    self.size_index[len(data)].append(uuid)
+        if failure:
+            info['newsrc'] = 'failedtoload'
+            info['actuallyused'] = False
+        logger.debug("add_img(%s,%s,%s,%s,%s)"%(url,ext,mime,uuid,info['newsrc']))
         return info['newsrc']
 
+    def cache_failed_url(self,url):
+        # logger.debug("cache_failed_url(%s)"%url)
+        self.add_img(url,failure=True)
+
     def get_img_by_url(self,url):
-        # logger.debug("get_img_by_url(%s):%s"%(url,self.url_index.get(url,None)))
-        return self.url_index.get(url,None)
+        # logger.debug("get_img_by_url(%s)"%url)
+        uuid = self.url_index.get(url,None)
+        if not uuid:
+            uuid = url2uuid(url)
+        retval = self.get_img_by_uuid(uuid)
+        if not retval:
+            ## fall back to lookup by *embedded* uuid, assuming same pattern
+            ## as above: "images/prefix-index-uuid.ext"
+            m = re.match(r'^images/'+self.prefix+r'-(?P<uuid>[0-9a-fA-F-]+)\.(?P<ext>.+)$',url)
+            if m:
+                retval = self.get_img_by_uuid(m.group('uuid'))
+        return retval
+
+    def get_img_by_uuid(self,uuid):
+        # logger.debug("get_img_by_uuid(%s)"%uuid)
+        info = self.uuid_index.get(uuid,None)
+        if info and info['newsrc'] != 'failedtoload':
+            info['actuallyused']=True
+        return info
 
     def get_imgs_by_size(self,size):
-        return self.size_index[size]
+        return [ self.get_img_by_uuid(uuid) for uuid in self.size_index[size] ]
 
     def get_imgs(self):
-        return self.infos
+        return [ x for x in self.infos if x['actuallyused'] ]
 
     def debug_out(self):
+        # logger.debug(self.fails_index)
+        # import pprint
+        # logger.debug(pprint.pformat([ (x['url'], x['uuid'], x['newsrc']) for x in self.infos]))
         pass
-        # logger.debug(self.url_index.keys())
-        # logger.debug(self.size_index.keys())
-        # logger.debug("\n"+("\n".join([ x['newsrc'] for x in self.infos])))
-
 
 class MetadataCache:
     def __init__(self):
@@ -733,7 +797,7 @@ class Story(Requestable):
         self.chapter_first = None
         self.chapter_last = None
 
-        self.img_store = ImageStore()
+        self.img_store = ImageStore(dedup=self.getConfig('dedup_img_files'))
 
         self.metadata_cache = MetadataCache()
 
@@ -754,7 +818,7 @@ class Story(Requestable):
         self.chapter_error_count = 0
 
         # direct_fetcher is used for downloading image in some case
-        # by using RequestsFetcher instead of the expected fetcher 
+        # by using RequestsFetcher instead of the expected fetcher
         self.direct_fetcher = None
         if self.getConfig('use_flaresolverr_proxy'):
             logger.debug("use_flaresolverr_proxy:%s"%self.getConfig('use_flaresolverr_proxy'))
@@ -1562,6 +1626,21 @@ class Story(Requestable):
             logger.debug("No image processing (%s) matches no_image_processing_regexp(%s)"%(imgurl,nipregexp))
             return True
 
+    # for base_adapter to call to load pre-existing images from update
+    # epub.
+    def load_oldimgs(self,oldimgs):
+        for url in oldimgs.keys():
+            ## need to take ext from saved src, not origurl,
+            ## likely changed to jpg.
+            (src,data)=oldimgs[url]
+            ext = src.split('.')[-1]
+            logger.debug("load_oldimgs:(%s,%s,%s)"%(url,ext,imagetypes[ext]))
+            self.img_store.add_img(url,
+                                   ext,
+                                   imagetypes[ext],
+                                   data,
+                                   actuallyused=False)
+
     # pass fetch in from adapter in case we need the cookies collected
     # as well as it's a base_story class method.
     def addImgUrl(self,parenturl,url,fetch,cover=None,coverexclusion=None):
@@ -1623,14 +1702,13 @@ class Story(Requestable):
                     toppath=""
                     if parsedUrl.path.endswith("/"):
                         toppath = parsedUrl.path
-                    else:
+                    elif parsedUrl.path:
                         toppath = parsedUrl.path[:parsedUrl.path.rindex('/')+1]
                     imgurl = urlunparse(
                         (parsedUrl.scheme,
                          parsedUrl.netloc,
                          toppath + url,
                          '','',''))
-                    # logger.debug("\n===========\nparsedUrl.path:%s\ntoppath:%s\nimgurl:%s\n\n"%(parsedUrl.path,toppath,imgurl))
 
         ## apply coverexclusion to specific covers, too.  Primarily for ffnet imageu.
         ## (Note that default and force covers don't pass cover_exclusion_regexp)
@@ -1642,8 +1720,8 @@ class Story(Requestable):
         imginfo = self.img_store.get_img_by_url(imgurl)
         if not imginfo:
             try:
-                if imgurl.endswith('failedtoload'):
-                    return ("failedtoload","failedtoload")
+                if imgurl.startswith('failedtoload'):
+                    return (imgurl,'')
 
                 if not imgdata:
                     # might already have from data:image in-line allow
@@ -1697,23 +1775,19 @@ class Story(Requestable):
                     logger.info("Failed to load or convert image, \nparent:%s\nskipping:%s\nException: %s"%(parenturl,imgurl,e))
                 except:
                     logger.info("Failed to load or convert image, \nparent:%s\nskipping:%s\n(Exception output also caused exception)"%(parenturl,imgurl))
-                return ("failedtoload","failedtoload")
+                self.img_store.cache_failed_url(imgurl)
+                fs = "failedtoload %s"%imgurl
+                return (fs,'')
 
-            ## (cover images never included in get_imgs_by_size)
-            if self.getConfig('dedup_img_files',False):
-                same_sz_imgs = self.img_store.get_imgs_by_size(len(data))
-                for szimg in same_sz_imgs:
-                    if data == szimg['data']:
-                        # matching data, duplicate file with a different URL.
-                        logger.info("found duplicate image: %s, %s"%(szimg['newsrc'],
-                                                                     szimg['url']))
-                        return (szimg['newsrc'],szimg['url'])
             if not cover: # cover now handled below
                 newsrc = self.img_store.add_img(imgurl,
                                                 ext,
                                                 mime,
                                                 data)
         else:
+            if imginfo['newsrc'].startswith('failedtoload'):
+                fs = "failedtoload %s"%imgurl
+                return (fs,fs)
             ## image was found in existing store.
             self.img_store.debug_out()
             logger.debug("existing image url found:%s->%s"%(imgurl,imginfo['newsrc']))

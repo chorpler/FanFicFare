@@ -382,7 +382,7 @@ div { margin: 0pt; padding: 0pt; }
         containertop.appendChild(rootfiles)
         rootfiles.appendChild(newTag(containerdom,"rootfile",{"full-path":"content.opf",
                                                               "media-type":"application/oebps-package+xml"}))
-        write_to_epub("META-INF/container.xml",containerdom.toxml(encoding='utf-8'))
+        write_to_epub("META-INF/container.xml",containerdom.toprettyxml(encoding='utf-8'))
         containerdom.unlink()
         del containerdom
 
@@ -562,6 +562,7 @@ div { margin: 0pt; padding: 0pt; }
         guide = None
         coverIO = None
 
+        imgcount=0
         coverimgid = "image0000"
         if self.use_oldcover:
             logger.debug("using old cover")
@@ -586,11 +587,9 @@ div { margin: 0pt; padding: 0pt; }
             guide.appendChild(newTag(contentdom,"reference",attrs={"type":"cover",
                                                                    "title":"Cover",
                                                                    "href":oldcoverhtmlhref}))
-
-
+            imgcount+=1
 
         if self.getConfig('include_images'):
-            imgcount=0
             for imgmap in self.story.getImgUrls():
                 imgfile = "OEBPS/"+imgmap['newsrc']
                 # don't overwrite old cover.
@@ -827,7 +826,7 @@ div { margin: 0pt; padding: 0pt; }
             package.appendChild(guide)
 
         # write content.opf to zip.
-        contentxml = contentdom.toxml(encoding='utf-8')
+        contentxml = contentdom.toprettyxml(encoding='utf-8')
         # tweak for brain damaged Nook STR.  Nook insists on name before content.
         contentxml = contentxml.replace(ensure_binary('<meta content="%s" name="cover"/>'%coverimgid),
                                         ensure_binary('<meta name="cover" content="%s"/>'%coverimgid))
@@ -884,7 +883,7 @@ div { margin: 0pt; padding: 0pt; }
                 index=index+1
 
         # write_to_epub used, but already passed using svg_files
-        write_to_epub("toc.ncx",tocncxdom.toxml(encoding='utf-8'))
+        write_to_epub("toc.ncx",tocncxdom.toprettyxml(encoding='utf-8'))
         tocncxdom.unlink()
         del tocncxdom
 
@@ -945,7 +944,7 @@ div { margin: 0pt; padding: 0pt; }
                 li.appendChild(atag)
 
             # write_to_epub used, but already passed using svg_files
-            write_to_epub("nav.xhtml",tocnavdom.toxml(encoding='utf-8'))
+            write_to_epub("nav.xhtml",tocnavdom.toprettyxml(encoding='utf-8'))
             tocnavdom.unlink()
             del tocnavdom
 

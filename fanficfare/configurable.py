@@ -156,10 +156,14 @@ boollist=['true','false']
 base_xenforo2_list=['base_xenforo2forum',
                    'forums.sufficientvelocity.com',
                    'forums.spacebattles.com',
-                   'www.alternatehistory.com',
-                   ]
-base_xenforo_list=base_xenforo2_list+['base_xenforoforum',
                    'forum.questionablequesting.com',
+                   'www.alternatehistory.com',
+                   'althistory.com',
+                    'www.the-sietch.com',
+                   ]
+## no xf1 sites anymore--[base_xenforoforum] kept to not mess with
+## users' existing ini's.
+base_xenforo_list=base_xenforo2_list+['base_xenforoforum',
                    ]
 ## base_otw_adapter sites
 otw_list=['archiveofourown.org',
@@ -326,6 +330,7 @@ def get_valid_set_options():
                'skip_sticky_first_posts':(base_xenforo2_list,None,boollist),
                'include_dice_rolls':(base_xenforo2_list,None,boollist+['svg']),
                'include_nonauthor_poster':(base_xenforo2_list,None,boollist),
+               'link_embedded_media':(base_xenforo2_list,None,boollist),
                'include_chapter_banner_images':(['wattpad.com'],None,boollist),
                'dateUpdated_method':(['wattpad.com'],None,['modifyDate', 'lastPublishedPart']),
                'fix_excess_space': (['novelonlinefull.com', 'novelall.com'], ['epub', 'html'], boollist),
@@ -609,6 +614,7 @@ def get_valid_keywords():
                  'skip_sticky_first_posts',
                  'include_dice_rolls',
                  'include_nonauthor_poster',
+                 'link_embedded_media',
                  'include_chapter_banner_images',
                  'dateUpdated_method',
                  'datethreadmark_format',
