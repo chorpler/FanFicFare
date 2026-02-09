@@ -80,8 +80,10 @@ try:
     def convert_image(url,data,sizes,grayscale,
                       removetrans,imgtype="jpg",background='#ffffff',jpg_quality=95):
         # logger.debug("calibre convert_image called")
-
-        if url.lower().endswith('.svg') or '.svg?' in url.lower():
+        ## I can just see somebody doing logo_svg.jpg
+        if url.lower().endswith('.svg') or '.svg?' in url.lower() \
+                or ensure_binary('<svg ') in data[:1000] \
+                or ensure_binary('xmlns="http://www.w3.org/2000/svg"') in data[:1000]:
             raise exceptions.RejectImage("Calibre image processing chokes on SVG images.")
         export = False
         img, format = image_and_format_from_data(data)
@@ -625,13 +627,6 @@ class ImageStore:
                 'data':data}
         if cover:
             info['newsrc'] = "images/%s.%s"%(self.cover_name,ext)
-            if self.cover and 'cover' in self.infos[0]['newsrc']:
-                # remove previously set cover, if present.  Should
-                # have only come from first image.  Double checking
-                # newsrc is paranoia and could possibly cause a
-                # problem if it ever changes.
-                del self.infos[0]
-            self.infos.insert(0,info)
             self.cover = info
         else:
             info['newsrc'] = "images/%s-%s.%s"%(
@@ -641,7 +636,7 @@ class ImageStore:
             ## Replace info out right if it's a dup image
             was_deduped = False
             if self.dedup and data:
-                same_sz_imgs = self.get_imgs_by_size(len(data))
+                same_sz_imgs = self.get_imgs_by_size(len(data),actuallyused)
                 for szimg in same_sz_imgs:
                     if data == szimg['data']:
                         # matching data, duplicate file with a different URL.
@@ -663,39 +658,43 @@ class ImageStore:
         if failure:
             info['newsrc'] = 'failedtoload'
             info['actuallyused'] = False
-        logger.debug("add_img(%s,%s,%s,%s,%s)"%(url,ext,mime,uuid,info['newsrc']))
-        return info['newsrc']
+        logger.debug("add_img(%s,%s,%s,%s,%s,used:%s)"%(url,ext,mime,uuid,info['newsrc'],info['actuallyused']))
+        return info
 
     def cache_failed_url(self,url):
         # logger.debug("cache_failed_url(%s)"%url)
         self.add_img(url,failure=True)
 
-    def get_img_by_url(self,url):
+    def get_img_by_url(self,url,actuallyused=True):
         # logger.debug("get_img_by_url(%s)"%url)
         uuid = self.url_index.get(url,None)
         if not uuid:
             uuid = url2uuid(url)
-        retval = self.get_img_by_uuid(uuid)
+        retval = self.get_img_by_uuid(uuid,actuallyused)
         if not retval:
             ## fall back to lookup by *embedded* uuid, assuming same pattern
             ## as above: "images/prefix-index-uuid.ext"
             m = re.match(r'^images/'+self.prefix+r'-(?P<uuid>[0-9a-fA-F-]+)\.(?P<ext>.+)$',url)
             if m:
-                retval = self.get_img_by_uuid(m.group('uuid'))
+                retval = self.get_img_by_uuid(m.group('uuid'),actuallyused)
         return retval
 
-    def get_img_by_uuid(self,uuid):
+    def get_img_by_uuid(self,uuid,actuallyused=True):
         # logger.debug("get_img_by_uuid(%s)"%uuid)
         info = self.uuid_index.get(uuid,None)
         if info and info['newsrc'] != 'failedtoload':
-            info['actuallyused']=True
+            info['actuallyused'] = info['actuallyused'] or actuallyused
         return info
 
-    def get_imgs_by_size(self,size):
-        return [ self.get_img_by_uuid(uuid) for uuid in self.size_index[size] ]
+    def get_imgs_by_size(self,size,actuallyused=True):
+        return [ self.get_img_by_uuid(uuid,actuallyused) for uuid in self.size_index[size] ]
 
+    # cover plus list
     def get_imgs(self):
-        return [ x for x in self.infos if x['actuallyused'] ]
+        retval = [ x for x in self.infos if x['actuallyused'] ]
+        if self.cover:
+            retval.insert(0,self.cover)
+        return retval
 
     def debug_out(self):
         # logger.debug(self.fails_index)
@@ -917,7 +916,7 @@ class Story(Requestable):
         if key == "language":
             try:
                 # getMetadata not just self.metadata[] to do replace_metadata.
-                self.setMetadata('langcode',langs[self.getMetadata(key)])
+                self.setMetadata('langcode',langs[self.getMetadataRaw(key)])
             except:
                 self.setMetadata('langcode','en')
 
@@ -1141,6 +1140,9 @@ class Story(Requestable):
                     removeallentities=False,
                     doreplacements=True,
                     seen_list={}):
+        if self.isImmutableMetaEntry(key):
+            doreplacements = False
+
         # check for a cached value to speed processing
         if self.metadata_cache.is_cached_scalar(key,removeallentities,doreplacements):
             return self.metadata_cache.get_cached_scalar(key,removeallentities,doreplacements)
@@ -1308,6 +1310,9 @@ class Story(Requestable):
                 seen_list={}):
         #print("getList(%s,%s)"%(listname,includelist))
         retlist = []
+
+        if self.isImmutableMetaEntry(listname):
+            doreplacements = False
 
         # check for a cached value to speed processing
         if not skip_cache and self.metadata_cache.is_cached_list(listname,removeallentities,doreplacements):
@@ -1780,17 +1785,19 @@ class Story(Requestable):
                 return (fs,'')
 
             if not cover: # cover now handled below
-                newsrc = self.img_store.add_img(imgurl,
-                                                ext,
-                                                mime,
-                                                data)
+                imginfo = self.img_store.add_img(imgurl,
+                                                 ext,
+                                                 mime,
+                                                 data)
+                newsrc = imginfo['newsrc']
+                imgurl = imginfo['url']
         else:
             if imginfo['newsrc'].startswith('failedtoload'):
                 fs = "failedtoload %s"%imgurl
                 return (fs,fs)
             ## image was found in existing store.
             self.img_store.debug_out()
-            logger.debug("existing image url found:%s->%s"%(imgurl,imginfo['newsrc']))
+            logger.debug("existing image url found:%s->%s(%s)"%(imgurl,imginfo['newsrc'],imginfo['url']))
             newsrc = imginfo['newsrc']
 
             ## for cover handling
@@ -1825,12 +1832,13 @@ class Story(Requestable):
                 cover = 'first'
 
         if cover: # 'specific', 'first', 'default' and 'force'
-            ## adds a copy if already found in img_store
-            self.cover = self.img_store.add_img(imgurl,
-                                                ext,
-                                                mime,
-                                                data,
-                                                cover=True)
+            ## adds a copy even if already in img_store
+            imginfo = self.img_store.add_img(imgurl,
+                                             ext,
+                                             mime,
+                                             data,
+                                             cover=True)
+            self.cover = imginfo['newsrc']
             self.setMetadata('cover_image',cover)
             logger.debug("use cover(%s): %s"%(cover,imgurl))
             if not newsrc:
