@@ -2274,7 +2274,6 @@ class FanFicFarePlugin(InterfaceAction):
         errorcol_label = self.get_custom_col_label(prefs['errorcol'])
         lastcheckedcol_label = self.get_custom_col_label(prefs['lastcheckedcol'])
 
-        columns = self.gui.library_view.model().custom_columns
         if good_list or prefs['mark'] or (bad_list and errorcol_label) or lastcheckedcol_label:
             LoopProgressDialog(self.gui,
                                good_list+bad_list,
