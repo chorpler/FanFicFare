@@ -526,7 +526,6 @@ def get_immutable_entries():
     return list([
             'authorId',
             'authorUrl',
-            'seriesUrl',
             'storyId',
             'storyUrl',
             'langcode',
