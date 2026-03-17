@@ -59,6 +59,7 @@ def do_download_worker_single(site,
 
     do_list = []
     done_list = []
+    logger.info("\n\n"+_("Downloading FanFiction Stories")+"\n%s\n"%("\n".join([ "%(status)s %(url)s %(comment)s" % book for book in book_list])))
     ## pass failures from metadata through bg job so all results are
     ## together.
     for book in book_list:

@@ -241,7 +241,7 @@ class LiteroticaSiteAdapter(BaseSiteAdapter):
             self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div#tabpanel-tags a.av_as') ])
         if soup.select('div[class^="_widget__tags_"]'):
             # logger.debug("tags2")
-            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tags__link_"]') ])
+            self.story.extendList('eroticatags', [ stripHTML(t).title() for t in soup.select('div[class^="_widget__tags_"] a[class^="_tag_item_"]') ])
         # logger.debug(self.story.getList('eroticatags'))
 
         ## look first for 'Series Introduction', then Info panel short desc
