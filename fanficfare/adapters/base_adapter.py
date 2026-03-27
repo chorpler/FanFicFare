@@ -782,7 +782,7 @@ try to download.</p>
                         (img['src'],longdesc)=self.story.addImgUrl(url,self.img_url_trans(img['src']),fetch,
                                                                    coverexclusion=self.getConfig('cover_exclusion_regexp'))
                         if longdesc:
-                            logger.debug("---set longdesc:%s"%longdesc)
+                            # logger.debug("---set longdesc:%s"%longdesc)
                             img['longdesc'] = longdesc
                 except AttributeError as ae:
                     logger.info("Parsing for img tags failed--probably poor input HTML.  Skipping img(%s)"%img)

@@ -658,7 +658,7 @@ class ImageStore:
         if failure:
             info['newsrc'] = 'failedtoload'
             info['actuallyused'] = False
-        logger.debug("add_img(%s,%s,%s,%s,%s,used:%s)"%(url,ext,mime,uuid,info['newsrc'],info['actuallyused']))
+        # logger.debug("add_img(%s,%s,%s,%s,%s,used:%s)"%(url,ext,mime,uuid,info['newsrc'],info['actuallyused']))
         return info
 
     def cache_failed_url(self,url):
@@ -1639,7 +1639,7 @@ class Story(Requestable):
             ## likely changed to jpg.
             (src,data)=oldimgs[url]
             ext = src.split('.')[-1]
-            logger.debug("load_oldimgs:(%s,%s,%s)"%(url,ext,imagetypes[ext]))
+            # logger.debug("load_oldimgs:(%s,%s,%s)"%(url,ext,imagetypes[ext]))
             self.img_store.add_img(url,
                                    ext,
                                    imagetypes[ext],
@@ -1746,7 +1746,7 @@ class Story(Requestable):
                     (data,ext,mime) = no_convert_image(imgurl,
                                                        imgdata)
                 else:
-                    logger.debug("Doing image processing on (%s)"%imgurl)
+                    # logger.debug("Doing image processing on (%s)"%imgurl)
                     try:
                         sizes = [ int(x) for x in self.getConfigList('image_max_size',['580', '725']) ]
                     except Exception as e:
