@@ -111,7 +111,8 @@ from calibre_plugins.fanficfare_plugin.dialogs import (
     LoopProgressDialog, UserPassDialog, AboutDialog, CollectURLDialog,
     RejectListDialog, EmailPassDialog, TOTPDialog,
     save_collisions, question_dialog_all,
-    NotGoingToDownload, RejectUrlEntry, IniTextDialog)
+    NotGoingToDownload, RejectUrlEntry, IniTextDialog,
+    EditTextDialog)
 
 # because calibre immediately transforms html into zip and don't want
 # to have an 'if html'.  db.has_format is cool with the case mismatch,
@@ -429,7 +430,21 @@ class FanFicFarePlugin(InterfaceAction):
             self.reject_list_action = self.create_menu_item_ex(self.menu, _('Reject Selected Books'),
                                                                unique_name='Reject Selected Books', image='rotate-right.png',
                                                                triggered=self.reject_list_urls)
+
+            self.add_reject_urls_action = self.create_menu_item_ex(self.menu, _('Add Reject URLs'),
+                                                                   image='rotate-right.png',
+                                                                   unique_name='Add Reject URLs',
+                                                                   shortcut_name=_('Add Reject URLs'),
+                                                                   triggered=self.add_reject_urls)
+
+            self.edit_reject_urls_action = self.create_menu_item_ex(self.menu, _('Edit Reject URLs'),
+                                                                    image='rotate-right.png',
+                                                                    unique_name='Edit Reject URLs',
+                                                                    shortcut_name=_('Edit Reject URLs'),
+                                                                    triggered=self.edit_reject_urls)
+
             self.menu.addSeparator()
+
             self.editpersonalini_action = self.create_menu_item_ex(self.menu, _('Edit personal.ini'),
                                                                    image= 'config.png',
                                                                    unique_name='Edit personal.ini',
@@ -447,7 +462,6 @@ class FanFicFarePlugin(InterfaceAction):
                                                          unique_name='About FanFicFare',
                                                          shortcut_name=_('About FanFicFare'),
                                                          triggered=self.about)
-
             self.gui.keyboard.finalize()
 
     def about(self,checked):
@@ -482,6 +496,35 @@ class FanFicFarePlugin(InterfaceAction):
                 # if they've removed everything, reset to default.
                 prefs['personal.ini'] = get_resources('plugin-example.ini')
             prefs.save_to_db()
+
+    def add_reject_urls(self):
+        d = EditTextDialog(self.gui,
+                           "http://example.com/story.php?sid=5,"+_("Reason why I rejected it")+"\nhttp://example.com/story.php?sid=6,"+_("Title by Author")+" - "+_("Reason why I rejected it"),
+                           # icon=self.windowIcon(),
+                           title=_("FanFicFare"),
+                           label=_("Add Reject URLs. Use: <b>http://...,note</b> or <b>http://...,title by author - note</b><br>Invalid story URLs will be ignored."),
+                           tooltip=_("One URL per line:\n<b>http://...,note</b>\n<b>http://...,title by author - note</b>"),
+                           rejectreasons=rejecturllist.get_reject_reasons(),
+                           reasonslabel=_('Add this reason to all URLs added:'),
+                           accept_storyurls=True,
+                           save_size_name='fff:Add Reject List')
+        d.exec_()
+        if d.result() == d.Accepted:
+            rejecturllist.add_text(d.get_plain_text(),d.get_reason_text())
+
+    def edit_reject_urls(self):
+        with busy_cursor():
+            d = RejectListDialog(self.gui,
+                                 rejecturllist.get_list(),
+                                 rejectreasons=rejecturllist.get_reject_reasons(),
+                                 header=_("Edit Reject URLs List"),
+                                 show_delete=False,
+                                 show_all_reasons=False)
+        d.exec_()
+        if d.result() != d.Accepted:
+            return
+        with busy_cursor():
+            rejecturllist.add(d.get_reject_list(),clear=True)
 
     def create_menu_item_ex(self, parent_menu, menu_text, image=None, tooltip=None,
                            shortcut=None, triggered=None, is_checked=None, shortcut_name=None,
