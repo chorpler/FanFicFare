@@ -10,7 +10,9 @@ __docformat__ = 'restructuredtext en'
 import fanficfare.six as six
 from fanficfare.six import ensure_text, string_types, text_type as unicode
 
-# import cProfile
+# from io import StringIO
+# import cProfile, pstats
+# from pstats import SortKey
 
 # def do_cprofile(func):
 #     def profiled_func(*args, **kwargs):
@@ -21,7 +23,12 @@ from fanficfare.six import ensure_text, string_types, text_type as unicode
 #             profile.disable()
 #             return result
 #         finally:
-#             profile.print_stats()
+#             # profile.print_stats()
+#             s = StringIO()
+#             sortby = SortKey.CUMULATIVE
+#             ps = pstats.Stats(profile, stream=s).sort_stats(sortby)
+#             ps.print_stats(20)
+#             print(s.getvalue())
 #     return profiled_func
 
 import logging
@@ -1893,6 +1900,7 @@ class FanFicFarePlugin(InterfaceAction):
         else:
             return None
 
+    # @do_cprofile
     def update_books_loop(self,book,db=None,
                           options={'fileform':'epub',
                                    'collision':ADDNEW,
