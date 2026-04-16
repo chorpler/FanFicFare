@@ -1153,9 +1153,9 @@ class FanFicFarePlugin(InterfaceAction):
         ## Aug2024 moved site specific search changes to adapters as
         ## classmethod
         regexp = adapters.get_url_search(url)
-        logger.debug(regexp)
+        # logger.debug(regexp)
         retval = self.gui.current_db.search_getting_ids(regexp,None,use_virtual_library=False)
-        logger.debug(retval)
+        # logger.debug(retval)
         return retval
 
     def prep_downloads(self, options, books, merge=False, extrapayload=None):
