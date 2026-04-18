@@ -833,7 +833,9 @@ try to download.</p>
                     ## handle identifiers that otherwise appear to be
                     ## selectors themselves.  #966
                     try:
-                        if href[0] == "#" and soup.select_one("[id='%s']"%href[1:]):
+                        # logger.debug("Search for internal link anchor href:(%s)"%href)
+                        if href[0] == "#" and soup.select_one("[id='%s'], [name='%s']"%(href[1:],href[1:])):
+                            # logger.debug("Found internal link anchor href:(%s)"%href)
                             hrefurl = href
                     except Exception as e:
                         logger.debug("Search for internal link anchor failed href:(%s)"%href)
