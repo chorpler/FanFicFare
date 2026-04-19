@@ -2830,6 +2830,9 @@ class FanFicFarePlugin(InterfaceAction):
         mi.pubdate = book['pubdate']
         mi.timestamp = book['timestamp']
         mi.comments = book['comments']
+        if prefs['seriescase']:
+            from calibre.ebooks.metadata.sources.base import fixcase
+            book['series'] = fixcase(book['series'])
         mi.series = book['series']
         return mi
 
