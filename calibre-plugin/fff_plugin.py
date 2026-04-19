@@ -10,27 +10,6 @@ __docformat__ = 'restructuredtext en'
 import fanficfare.six as six
 from fanficfare.six import ensure_text, string_types, text_type as unicode
 
-# from io import StringIO
-# import cProfile, pstats
-# from pstats import SortKey
-
-# def do_cprofile(func):
-#     def profiled_func(*args, **kwargs):
-#         profile = cProfile.Profile()
-#         try:
-#             profile.enable()
-#             result = func(*args, **kwargs)
-#             profile.disable()
-#             return result
-#         finally:
-#             # profile.print_stats()
-#             s = StringIO()
-#             sortby = SortKey.CUMULATIVE
-#             ps = pstats.Stats(profile, stream=s).sort_stats(sortby)
-#             ps.print_stats(20)
-#             print(s.getvalue())
-#     return profiled_func
-
 import logging
 logger = logging.getLogger(__name__)
 
@@ -91,6 +70,8 @@ from fanficfare.geturls import (
     get_urls_from_page, get_urls_from_text,get_urls_from_imap,
     get_urls_from_mime)
 
+from fanficfare.fff_profile import do_cprofile
+
 from calibre_plugins.fanficfare_plugin.fff_util import (
     get_fff_adapter, get_fff_config, get_fff_personalini,
     get_common_elements)
@@ -118,7 +99,7 @@ from calibre_plugins.fanficfare_plugin.dialogs import (
     LoopProgressDialog, UserPassDialog, AboutDialog, CollectURLDialog,
     RejectListDialog, EmailPassDialog, TOTPDialog,
     save_collisions, question_dialog_all,
-    NotGoingToDownload, RejectUrlEntry, IniTextDialog,
+    RejectUrlEntry, IniTextDialog,
     EditTextDialog)
 
 # because calibre immediately transforms html into zip and don't want
@@ -1172,9 +1153,9 @@ class FanFicFarePlugin(InterfaceAction):
         ## Aug2024 moved site specific search changes to adapters as
         ## classmethod
         regexp = adapters.get_url_search(url)
-        logger.debug(regexp)
+        # logger.debug(regexp)
         retval = self.gui.current_db.search_getting_ids(regexp,None,use_virtual_library=False)
-        logger.debug(retval)
+        # logger.debug(retval)
         return retval
 
     def prep_downloads(self, options, books, merge=False, extrapayload=None):
@@ -1304,7 +1285,7 @@ class FanFicFarePlugin(InterfaceAction):
         # let other exceptions percolate up.
         return adapter.getStoryMetadataOnly(get_cover=False)
 
-    # @do_cprofile
+    @do_cprofile
     def prep_download_loop(self,book,
                            options={'fileform':'epub',
                                     'collision':ADDNEW,
@@ -1343,11 +1324,11 @@ class FanFicFarePlugin(InterfaceAction):
         ## network hit.
         identicalbooks = self.do_id_search(url)
         if collision == SKIP and identicalbooks:
-            raise NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
+            raise exceptions.NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
 
         # Dialogs should prevent this case now.
         if collision in (UPDATE,UPDATEALWAYS) and fileform != 'epub':
-            raise NotGoingToDownload(_("Cannot update non-epub format."))
+            raise exceptions.NotGoingToDownload(_("Cannot update non-epub format."))
 
         if not book['good']:
             # book has already been flagged bad for whatever reason.
@@ -1541,7 +1522,7 @@ class FanFicFarePlugin(InterfaceAction):
                     logger.debug("existing found by identifier URL")
 
                 if collision == SKIP and identicalbooks:
-                    raise NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
+                    raise exceptions.NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
 
                 if len(identicalbooks) > 1:
                     identicalbooks_msg = _("More than one identical book by Identifier URL or title/author(s)--can't tell which book to update/overwrite.")
@@ -1572,7 +1553,7 @@ class FanFicFarePlugin(InterfaceAction):
                         identicalbooks = []
                         collision = book['collision'] = ADDNEW
                     else:
-                        raise NotGoingToDownload(identicalbooks_msg,"minusminus.png")
+                        raise exceptions.NotGoingToDownload(identicalbooks_msg,"minusminus.png")
 
                 ## changed: add new book when CALIBREONLY if none found.
                 if collision in (CALIBREONLY, CALIBREONLYSAVECOL) and not identicalbooks:
@@ -1659,11 +1640,11 @@ class FanFicFarePlugin(InterfaceAction):
                         # returns int adjusted for start-end range.
                         urlchaptercount = story.getChapterCount()
                         if chaptercount == urlchaptercount and collision == UPDATE:
-                            raise NotGoingToDownload(_("Already contains %d chapters.")%chaptercount,'edit-undo.png',showerror=False)
+                            raise exceptions.NotGoingToDownload(_("Already contains %d chapters.")%chaptercount,'edit-undo.png',showerror=False)
                         elif chaptercount > urlchaptercount and not (collision == UPDATEALWAYS and adapter.getConfig('force_update_epub_always')):
-                            raise NotGoingToDownload(_("Existing epub contains %d chapters, web site only has %d. Use Overwrite or force_update_epub_always to force update.") % (chaptercount,urlchaptercount),'dialog_error.png')
+                            raise exceptions.NotGoingToDownload(_("Existing epub contains %d chapters, web site only has %d. Use Overwrite or force_update_epub_always to force update.") % (chaptercount,urlchaptercount),'dialog_error.png')
                         elif chaptercount == 0:
-                            raise NotGoingToDownload(_("FanFicFare doesn't recognize chapters in existing epub, epub is probably from a different source. Use Overwrite to force update."),'dialog_error.png')
+                            raise exceptions.NotGoingToDownload(_("FanFicFare doesn't recognize chapters in existing epub, epub is probably from a different source. Use Overwrite to force update."),'dialog_error.png')
 
                 if collision == OVERWRITE and \
                         db.has_format(book_id,formmapping[fileform],index_is_id=True):
@@ -1680,7 +1661,7 @@ class FanFicFarePlugin(InterfaceAction):
                         # updated does have time, use full timestamps.
                         if (lastupdated.time() == time.min and fileupdated.date() > lastupdated.date()) or \
                                 (lastupdated.time() != time.min and fileupdated > lastupdated):
-                            raise NotGoingToDownload(_("Not Overwriting, web site is not newer."),'edit-undo.png',showerror=False)
+                            raise exceptions.NotGoingToDownload(_("Not Overwriting, web site is not newer."),'edit-undo.png',showerror=False)
 
                 # For update, provide a tmp file copy of the existing epub so
                 # it can't change underneath us.  Now also overwrite for logpage preserve.
@@ -1900,7 +1881,7 @@ class FanFicFarePlugin(InterfaceAction):
         else:
             return None
 
-    # @do_cprofile
+    @do_cprofile
     def update_books_loop(self,book,db=None,
                           options={'fileform':'epub',
                                    'collision':ADDNEW,
@@ -2849,6 +2830,9 @@ class FanFicFarePlugin(InterfaceAction):
         mi.pubdate = book['pubdate']
         mi.timestamp = book['timestamp']
         mi.comments = book['comments']
+        if prefs['seriescase']:
+            from calibre.ebooks.metadata.sources.base import fixcase
+            book['series'] = fixcase(book['series'])
         mi.series = book['series']
         return mi
 
@@ -3220,7 +3204,9 @@ The previously downloaded book is still in the anthology, but FFF doesn't have t
         s = options.get('frompage',{}).get('status','')
         if s:
             book['all_metadata']['status'] = s
-            book['tags'].append(s)
+            ## status into tags only if in include_subject_tags
+            if 'status' in configuration.getConfigList('include_subject_tags'):
+                book['tags'].append(s)
         book['tags'].extend(configuration.getConfigList('anthology_tags'))
         book['all_metadata']['anthology'] = "true"
 
