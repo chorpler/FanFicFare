@@ -99,7 +99,7 @@ from calibre_plugins.fanficfare_plugin.dialogs import (
     LoopProgressDialog, UserPassDialog, AboutDialog, CollectURLDialog,
     RejectListDialog, EmailPassDialog, TOTPDialog,
     save_collisions, question_dialog_all,
-    NotGoingToDownload, RejectUrlEntry, IniTextDialog,
+    RejectUrlEntry, IniTextDialog,
     EditTextDialog)
 
 # because calibre immediately transforms html into zip and don't want
@@ -1324,11 +1324,11 @@ class FanFicFarePlugin(InterfaceAction):
         ## network hit.
         identicalbooks = self.do_id_search(url)
         if collision == SKIP and identicalbooks:
-            raise NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
+            raise exceptions.NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
 
         # Dialogs should prevent this case now.
         if collision in (UPDATE,UPDATEALWAYS) and fileform != 'epub':
-            raise NotGoingToDownload(_("Cannot update non-epub format."))
+            raise exceptions.NotGoingToDownload(_("Cannot update non-epub format."))
 
         if not book['good']:
             # book has already been flagged bad for whatever reason.
@@ -1522,7 +1522,7 @@ class FanFicFarePlugin(InterfaceAction):
                     logger.debug("existing found by identifier URL")
 
                 if collision == SKIP and identicalbooks:
-                    raise NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
+                    raise exceptions.NotGoingToDownload(_("Skipping duplicate story."),"list_remove.png")
 
                 if len(identicalbooks) > 1:
                     identicalbooks_msg = _("More than one identical book by Identifier URL or title/author(s)--can't tell which book to update/overwrite.")
@@ -1553,7 +1553,7 @@ class FanFicFarePlugin(InterfaceAction):
                         identicalbooks = []
                         collision = book['collision'] = ADDNEW
                     else:
-                        raise NotGoingToDownload(identicalbooks_msg,"minusminus.png")
+                        raise exceptions.NotGoingToDownload(identicalbooks_msg,"minusminus.png")
 
                 ## changed: add new book when CALIBREONLY if none found.
                 if collision in (CALIBREONLY, CALIBREONLYSAVECOL) and not identicalbooks:
@@ -1640,11 +1640,11 @@ class FanFicFarePlugin(InterfaceAction):
                         # returns int adjusted for start-end range.
                         urlchaptercount = story.getChapterCount()
                         if chaptercount == urlchaptercount and collision == UPDATE:
-                            raise NotGoingToDownload(_("Already contains %d chapters.")%chaptercount,'edit-undo.png',showerror=False)
+                            raise exceptions.NotGoingToDownload(_("Already contains %d chapters.")%chaptercount,'edit-undo.png',showerror=False)
                         elif chaptercount > urlchaptercount and not (collision == UPDATEALWAYS and adapter.getConfig('force_update_epub_always')):
-                            raise NotGoingToDownload(_("Existing epub contains %d chapters, web site only has %d. Use Overwrite or force_update_epub_always to force update.") % (chaptercount,urlchaptercount),'dialog_error.png')
+                            raise exceptions.NotGoingToDownload(_("Existing epub contains %d chapters, web site only has %d. Use Overwrite or force_update_epub_always to force update.") % (chaptercount,urlchaptercount),'dialog_error.png')
                         elif chaptercount == 0:
-                            raise NotGoingToDownload(_("FanFicFare doesn't recognize chapters in existing epub, epub is probably from a different source. Use Overwrite to force update."),'dialog_error.png')
+                            raise exceptions.NotGoingToDownload(_("FanFicFare doesn't recognize chapters in existing epub, epub is probably from a different source. Use Overwrite to force update."),'dialog_error.png')
 
                 if collision == OVERWRITE and \
                         db.has_format(book_id,formmapping[fileform],index_is_id=True):
@@ -1661,7 +1661,7 @@ class FanFicFarePlugin(InterfaceAction):
                         # updated does have time, use full timestamps.
                         if (lastupdated.time() == time.min and fileupdated.date() > lastupdated.date()) or \
                                 (lastupdated.time() != time.min and fileupdated > lastupdated):
-                            raise NotGoingToDownload(_("Not Overwriting, web site is not newer."),'edit-undo.png',showerror=False)
+                            raise exceptions.NotGoingToDownload(_("Not Overwriting, web site is not newer."),'edit-undo.png',showerror=False)
 
                 # For update, provide a tmp file copy of the existing epub so
                 # it can't change underneath us.  Now also overwrite for logpage preserve.
