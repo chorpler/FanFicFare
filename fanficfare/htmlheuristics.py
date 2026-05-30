@@ -269,13 +269,28 @@ def replace_br_with_p(body, aggressive=False):
     body = re.sub(r'XAMP;(.+?);', r'&\1;', body)
     body = body.strip()
 
+    # # re-wrap in div tag.
+    # body = u'<div id="' +was_run_marker+ u'">\n' + body + u'</div>\n'
+    # # return body after tag_sanitizer with 'replace_br_with_p done' marker.
+    # ## marker included twice becaues the comment & id could each be
+    # ## removed by different 'clean ups'.  I hope it's less likely both
+    # ## will be.
+    # return u'<!-- ' +was_run_marker+ u' -->\n' + tag_sanitizer(body)
+
+    was_run_div = u'<div id="' + was_run_marker + '">'
+    was_run_comment = u'<!-- ' + was_run_marker + ' -->'
     # re-wrap in div tag.
-    body = u'<div id="' +was_run_marker+ u'">\n' + body + u'</div>\n'
+    if was_run_div not in body:
+        body = was_run_div + body + u'</div>\n'
     # return body after tag_sanitizer with 'replace_br_with_p done' marker.
-    ## marker included twice becaues the comment & id could each be
+    ## marker included twice because the comment & id could each be
     ## removed by different 'clean ups'.  I hope it's less likely both
     ## will be.
-    return u'<!-- ' +was_run_marker+ u' -->\n' + tag_sanitizer(body)
+    br_replaced_body = tag_sanitizer(body)
+    if not was_run_comment in br_replaced_body:
+        br_replaced_body = was_run_comment + '\n' + br_replaced_body
+    return br_replaced_body
+
 
 def is_valid_block(block):
     return unicode(block).find('<') == 0 and unicode(block).find('<!') != 0
