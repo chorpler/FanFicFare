@@ -155,7 +155,7 @@ def replace_br_with_p(body, aggressive=False):
         len(breaksRegexp[7].findall(body))]
 
     breaksMax = 0
-    breaksMaxIndex = 0;
+    breaksMaxIndex = 0
 
     for i in range(1,len(breaksCount)):
         if breaksCount[i] >= breaksMax:
@@ -163,10 +163,10 @@ def replace_br_with_p(body, aggressive=False):
             breaksMaxIndex = i
 
     lines = body.split(u'[br /]')
-    contentLines = 0;
-    contentLinesSum = 0;
-    longestLineLength = 0;
-    averageLineLength = 0;
+    contentLines = 0
+    contentLinesSum = 0
+    longestLineLength = 0
+    averageLineLength = 0
 
     for line in lines:
         lineLen = len(line.strip())
