@@ -34,7 +34,7 @@ import copy
 from bs4 import BeautifulSoup, Tag
 
 
-from ..htmlheuristics import replace_br_with_p
+from ..htmlheuristics import replace_br_with_p, replace_zwc
 
 logger = logging.getLogger(__name__)
 
@@ -966,6 +966,11 @@ try to download.</p>
             start = datetime.now()
             retval = replace_br_with_p(retval, aggressive_replace)
             self.times.add("utf8FromSoup->replace_br_with_p", datetime.now() - start)
+
+        if self.getConfig("replace_zero_width_characters"):
+            start = datetime.now()
+            retval = replace_zwc(retval)
+            self.times.add("utf8FromSoup->replace_zwc", datetime.now() - start)
 
         if self.getConfig('replace_hr'):
             # replacing a self-closing tag with a container tag in the
