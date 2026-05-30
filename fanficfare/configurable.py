@@ -139,6 +139,19 @@ def get_valid_sections():
             allowedsections.append('%s:%s'%(section,f))
     return allowedsections
 
+def get_valid_list_entries():
+    return list(['category',
+                 'genre',
+                 'characters',
+                 'ships',
+                 'warnings',
+                 'extratags',
+                 'author',
+                 'authorId',
+                 'authorUrl',
+                 'lastupdate',
+                 ])
+
 boollist=['true','false']
 base_xenforo2_list=['base_xenforo2forum',
                    'forums.sufficientvelocity.com',
@@ -195,6 +208,8 @@ def get_valid_set_options():
                'never_make_cover':(None,None,boollist),
                'nook_img_fix':(None,None,boollist),
                'replace_br_with_p':(None,None,boollist),
+               'replace_br_aggressive':(None,None,boollist),
+               'replace_zero_width_characters':(None,None,boollist),
                'replace_hr':(None,None,boollist),
                'remove_empty_p':(None,None,boollist),
                'sort_ships':(None,None,boollist),
@@ -440,6 +455,9 @@ def get_valid_keywords():
                  'reader_posts_per_page',
                  'remove_tags',
                  'remove_transparency',
+                 'replace_br_with_p',
+                 'replace_br_aggressive',
+                 'replace_zero_width_characters',
                  'replace_chapter_text',
                  'replace_metadata',
                  'replace_tags_with_spans',
