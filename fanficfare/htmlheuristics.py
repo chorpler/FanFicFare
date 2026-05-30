@@ -29,15 +29,15 @@ from . import HtmlTagStack as stack
 
 def logdebug(s):
     # uncomment for debug output
-    # logger.debug(s)
-    pass
+    logger.debug(s)
+    # pass
 
 was_run_marker=u'FFF_replace_br_with_p_has_been_run'
-def replace_br_with_p(body):
-    if was_run_marker in body:
-        # logger.debug("replace_br_with_p previously applied, skipping.")
+def replace_br_with_p(body, aggressive=False):
+    if was_run_marker in body and not aggressive:
+        logdebug("replace_br_with_p previously applied and aggressive mwf, skipping.")
         return body
-
+    logdebug(f"replace_br_with_p called, aggressive={aggressive}")
     # Ascii character (and Unicode as well) xA0 is a non-breaking space, ascii code 160.
     # However, Python Regex does not recognize it as a whitespace, so we'll be changing it to a regular space.
     # .strip() so "\n<div>" at beginning is also recognized.
@@ -71,8 +71,14 @@ def replace_br_with_p(body):
 
     # Find all existing blocks with p, pre and blockquote tags, we need to shields break tags inside those.
     # This is for "lenient" mode, however it is also used to clear break tags before and after the block elements.
-    blocksRegex = re.compile(r'(\s*<br\ />\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ />\s*)*', re.DOTALL)
-    body = blocksRegex.sub(r'\n<\2\3>\4</\2>\n', body)
+    blocksRegexStr = r'(\s*<br\ */*>\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*'
+    if aggressive == True:
+        blocksRegexStr = r'(\s*<br\ */*>\s*)*\s*<(pre|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*'
+
+    blocksRegex = re.compile(blocksRegexStr, re.DOTALL)
+    body = re.sub(blocksRegexStr, r'\n<\2\3>\4</\2>\n', str(body))
+    # blocksRegex = re.compile(r'(\s*<br\ />\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ />\s*)*', re.DOTALL)
+    # body = blocksRegex.sub(r'\n<\2\3>\4</\2>\n', body)
 
     # if aggressive mode = true
         # blocksRegex = re.compile(r'(\s*<br\ */*>\s*)*\s*<(pre)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*', re.DOTALL)
@@ -80,7 +86,13 @@ def replace_br_with_p(body):
         # body = re.sub(r'<blockquote([^>]*)>(.+?)</blockquote>', r'<blockquote\1><p>\2</p></blockquote>', body, re.DOTALL)
     # end aggressive mode
 
+    if aggressive == True:
+        blocksRegex = re.compile(r'(\s*<br\ */*>\s*)*\s*<(pre)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*', re.DOTALL)
+        # In aggressive mode, we also check breaks inside blockquotes, meaning we can get orphaned paragraph tags.
+        body = re.sub(r'<blockquote([^>]*)>(.+?)</blockquote>', r'<blockquote\1><p>\2</p></blockquote>', body, re.DOTALL)
+
     blocks = blocksRegex.finditer(body)
+
     # For our replacements to work, we need to work backwards, so we reverse the iterator.
     blocksList = []
     for match in blocks:

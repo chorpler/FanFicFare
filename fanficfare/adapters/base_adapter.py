@@ -960,10 +960,11 @@ try to download.</p>
             logger.debug("Ignoring non-int replace_xbr_with_hr(%s)"%self.getConfig("replace_xbr_with_hr"))
 
         if self.getConfig("replace_br_with_p") and allow_replace_br_with_p:
+            aggressive_replace = self.getConfig('replace_br_aggressive',False)
             # Apply heuristic processing to replace <br> paragraph
             # breaks with <p> tags.
             start = datetime.now()
-            retval = replace_br_with_p(retval)
+            retval = replace_br_with_p(retval, aggressive_replace)
             self.times.add("utf8FromSoup->replace_br_with_p", datetime.now() - start)
 
         if self.getConfig('replace_hr'):
