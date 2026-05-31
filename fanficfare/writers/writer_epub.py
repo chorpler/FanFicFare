@@ -62,7 +62,7 @@ class EpubWriter(BaseStoryWriter):
 </head>
 <body class="fff_titlepage">
 <h3><a href="${storyUrl}">${title}</a> by ${authorHTML}</h3>
-<div>
+<div class="titlepage-info">
 ''')
 
         self.EPUB_TITLE_ENTRY = string.Template('''
