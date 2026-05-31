@@ -19,7 +19,7 @@ from __future__ import absolute_import
 import os
 import zipfile
 from glob import glob
-from six import text_type as unicode
+from fanficfare.six import text_type as unicode
 
 def addFolderToZip(myZipFile,folder,exclude=[]):
     folder = unicode(folder) #convert path to ascii for ZipFile Method
