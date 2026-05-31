@@ -312,6 +312,67 @@ def replace_zwc(body):
 
     return body
 
+def is_valid_block(block):
+    return unicode(block).find('<') == 0 and unicode(block).find('<!') != 0
+
+def soup_up_div(body):
+    blockTags = ['address', 'aside', 'blockquote', 'del', 'div', 'dl', 'fieldset', 'form', 'ins', 'noscript', 'ol', 'p', 'pre', 'table', 'ul']
+    recurseTags = ['blockquote', 'div', 'noscript']
+
+    tag = body[:body.index('>')+1]
+    tagend = body[body.rindex('<'):]
+
+    body = body.replace(u'<br />', u'[br /]')
+
+    # bs4 insists on wrapping *all* new soups in <html><body> if they
+    # don't already have them.  This way we have just the div.
+    soup = bs.BeautifulSoup('<div id="soup_up_div">'+body+'</div>','html5lib').find('div',id="soup_up_div")
+
+    body = u''
+    lastElement = 1 # 1 = block, 2 = nested, 3 = invalid
+
+    for i in soup.contents[0]:
+        if unicode(i).strip().__len__() > 0:
+            s = unicode(i)
+            if  type(i) == bs.Tag:
+                if  i.name in blockTags:
+                    if lastElement > 1:
+                        body = body.strip(r'\s*(\[br\ \/\]\s*)*\s*')
+                        body += u'{/p}'
+
+                    lastElement = 1
+
+                    if i.name in recurseTags:
+                        s = soup_up_div(s)
+
+                    body += s.strip() + '\n'
+                else:
+                    if lastElement == 1:
+                        body = body.strip(r'\s*(\[br\ \/\]\s*)*\s*')
+                        body += u'{p}'
+
+                    lastElement = 2
+                    body += s
+            elif type(i) == bs.Comment:
+                #body += s
+                # skip comments because '<!-- text -->' becomes just 'text'
+                pass
+            else:
+                if lastElement == 1:
+                    body = body.strip(r'\s*(\[br\ \/\]\s*)*\s*')
+                    body += u'{p}'
+
+                lastElement = 3
+                body += s
+
+    if lastElement > 1:
+        body = body.strip(r'\s*(\[br\ \/\]\s*)*\s*')
+        body += u'{/p}'
+
+    body = body.replace(u'[br /]', u'<br />')
+
+    return tag + body + tagend
+
 
 def is_end_tag(tag):
     return re.match(r'</([^\ >]+)>', tag) != None
