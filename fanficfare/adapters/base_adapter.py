@@ -34,7 +34,7 @@ import copy
 from bs4 import BeautifulSoup, Tag
 
 
-from ..htmlheuristics import replace_br_with_p
+from ..htmlheuristics import replace_br_with_p, replace_style_tags
 
 logger = logging.getLogger(__name__)
 
@@ -966,10 +966,15 @@ try to download.</p>
             retval = replace_br_with_p(retval)
             self.times.add("utf8FromSoup->replace_br_with_p", datetime.now() - start)
 
+        if self.getConfig("use_old_style_tags"):
+            start = datetime.now()
+            retval = replace_style_tags(retval)
+            self.times.add("utf8FromSoup->replace_style_tags", datetime.now() - start)
+
         if self.getConfig('replace_hr'):
             # replacing a self-closing tag with a container tag in the
             # soup is more difficult than it first appears.  So cheat.
-            retval = re.sub("<hr[^>]*>","<div class='center'>* * *</div>",retval)
+            retval = re.sub("<hr[^>]*>","<div class=\"center\">* * *</div>",retval)
 
         if self.getConfig('remove_empty_p'):
             # Remove <p> tags that contain only whitespace and/or <br>
