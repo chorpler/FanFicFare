@@ -974,7 +974,7 @@ try to download.</p>
         if self.getConfig('replace_hr'):
             # replacing a self-closing tag with a container tag in the
             # soup is more difficult than it first appears.  So cheat.
-            retval = re.sub("<hr[^>]*>","<div class='center'>* * *</div>",retval)
+            retval = re.sub("<hr[^>]*>","<div class=\"center\">* * *</div>",retval)
 
         if self.getConfig('remove_empty_p'):
             # Remove <p> tags that contain only whitespace and/or <br>
