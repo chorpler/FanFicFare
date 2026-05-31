@@ -312,6 +312,14 @@ def replace_zwc(body):
 
     return body
 
+def replace_style_tags(body):
+    logdebug(f"replace_style_tags called")
+
+    body = re.sub(r'<em([^>]*)>', r'<i\1>', body)
+    body = re.sub(r'<strong([^>]*)>', r'<b\1>', body)
+
+    return body
+
 def is_valid_block(block):
     return unicode(block).find('<') == 0 and unicode(block).find('<!') != 0
 
