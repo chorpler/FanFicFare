@@ -19,10 +19,13 @@ from __future__ import absolute_import
 import logging
 logger = logging.getLogger(__name__)
 import re
+# noinspection PyUnresolvedReferences
 import bs4 as bs
 
 # py2 vs py3 transition
+# noinspection PyUnresolvedReferences
 from .six import text_type as unicode
+# noinspection PyUnresolvedReferences
 from .six.moves import range
 
 from . import HtmlTagStack as stack
