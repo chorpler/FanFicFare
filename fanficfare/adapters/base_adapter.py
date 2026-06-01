@@ -33,8 +33,7 @@ import copy
 
 from bs4 import BeautifulSoup, Tag
 
-
-from ..htmlheuristics import replace_br_with_p, replace_style_tags
+from ..htmlheuristics import replace_br_with_p, replace_zwc, replace_style_tags
 
 logger = logging.getLogger(__name__)
 
@@ -960,11 +959,17 @@ try to download.</p>
             logger.debug("Ignoring non-int replace_xbr_with_hr(%s)"%self.getConfig("replace_xbr_with_hr"))
 
         if self.getConfig("replace_br_with_p") and allow_replace_br_with_p:
+            aggressive_replace = self.getConfig('replace_br_aggressive',False)
             # Apply heuristic processing to replace <br> paragraph
             # breaks with <p> tags.
             start = datetime.now()
-            retval = replace_br_with_p(retval)
+            retval = replace_br_with_p(retval, aggressive_replace)
             self.times.add("utf8FromSoup->replace_br_with_p", datetime.now() - start)
+
+        if self.getConfig("replace_zero_width_characters"):
+            start = datetime.now()
+            retval = replace_zwc(retval)
+            self.times.add("utf8FromSoup->replace_zwc", datetime.now() - start)
 
         if self.getConfig("use_old_style_tags"):
             start = datetime.now()

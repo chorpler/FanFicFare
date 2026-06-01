@@ -2386,8 +2386,8 @@ msgstr "zz"
 "for this URL?"
 
 #: fff_plugin.py:1510
-msgid "Click '<b>Yes</b>' to a new book with new URL."
-msgstr "zzClick '<b>Yes</b>' to a new book with new URL."
+msgid "Click '<b>Yes</b>' to create a new book with new URL."
+msgstr "zzClick '<b>Yes</b>' to create a new book with new URL."
 
 #: fff_plugin.py:1511
 msgid "Click '<b>No</b>' to skip URL."

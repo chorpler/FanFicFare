@@ -19,25 +19,28 @@ from __future__ import absolute_import
 import logging
 logger = logging.getLogger(__name__)
 import re
+# noinspection PyUnresolvedReferences
 import bs4 as bs
 
 # py2 vs py3 transition
+# noinspection PyUnresolvedReferences
 from .six import text_type as unicode
+# noinspection PyUnresolvedReferences
 from .six.moves import range
 
 from . import HtmlTagStack as stack
 
 def logdebug(s):
     # uncomment for debug output
-    # logger.debug(s)
-    pass
+    logger.debug(s)
+    # pass
 
 was_run_marker=u'FFF_replace_br_with_p_has_been_run'
-def replace_br_with_p(body):
-    if was_run_marker in body:
-        # logger.debug("replace_br_with_p previously applied, skipping.")
+def replace_br_with_p(body, aggressive=False):
+    if was_run_marker in body and not aggressive:
+        logdebug("replace_br_with_p previously applied and aggressive mwf, skipping.")
         return body
-
+    logdebug(f"replace_br_with_p called, aggressive={aggressive}")
     # Ascii character (and Unicode as well) xA0 is a non-breaking space, ascii code 160.
     # However, Python Regex does not recognize it as a whitespace, so we'll be changing it to a regular space.
     # .strip() so "\n<div>" at beginning is also recognized.
@@ -71,8 +74,14 @@ def replace_br_with_p(body):
 
     # Find all existing blocks with p, pre and blockquote tags, we need to shields break tags inside those.
     # This is for "lenient" mode, however it is also used to clear break tags before and after the block elements.
-    blocksRegex = re.compile(r'(\s*<br\ />\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ />\s*)*', re.DOTALL)
-    body = blocksRegex.sub(r'\n<\2\3>\4</\2>\n', body)
+    blocksRegexStr = r'(\s*<br\ */*>\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*'
+    if aggressive == True:
+        blocksRegexStr = r'(\s*<br\ */*>\s*)*\s*<(pre|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*'
+
+    blocksRegex = re.compile(blocksRegexStr, re.DOTALL)
+    body = re.sub(blocksRegexStr, r'\n<\2\3>\4</\2>\n', str(body))
+    # blocksRegex = re.compile(r'(\s*<br\ />\s*)*\s*<(pre|p|blockquote|table)([^>]*)>(.+?)</\2>\s*(\s*<br\ />\s*)*', re.DOTALL)
+    # body = blocksRegex.sub(r'\n<\2\3>\4</\2>\n', body)
 
     # if aggressive mode = true
         # blocksRegex = re.compile(r'(\s*<br\ */*>\s*)*\s*<(pre)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*', re.DOTALL)
@@ -80,7 +89,13 @@ def replace_br_with_p(body):
         # body = re.sub(r'<blockquote([^>]*)>(.+?)</blockquote>', r'<blockquote\1><p>\2</p></blockquote>', body, re.DOTALL)
     # end aggressive mode
 
+    if aggressive == True:
+        blocksRegex = re.compile(r'(\s*<br\ */*>\s*)*\s*<(pre)([^>]*)>(.+?)</\2>\s*(\s*<br\ */*>\s*)*', re.DOTALL)
+        # In aggressive mode, we also check breaks inside blockquotes, meaning we can get orphaned paragraph tags.
+        body = re.sub(r'<blockquote([^>]*)>(.+?)</blockquote>', r'<blockquote\1><p>\2</p></blockquote>', body, re.DOTALL)
+
     blocks = blocksRegex.finditer(body)
+
     # For our replacements to work, we need to work backwards, so we reverse the iterator.
     blocksList = []
     for match in blocks:
@@ -143,7 +158,7 @@ def replace_br_with_p(body):
         len(breaksRegexp[7].findall(body))]
 
     breaksMax = 0
-    breaksMaxIndex = 0;
+    breaksMaxIndex = 0
 
     for i in range(1,len(breaksCount)):
         if breaksCount[i] >= breaksMax:
@@ -151,10 +166,10 @@ def replace_br_with_p(body):
             breaksMaxIndex = i
 
     lines = body.split(u'[br /]')
-    contentLines = 0;
-    contentLinesSum = 0;
-    longestLineLength = 0;
-    averageLineLength = 0;
+    contentLines = 0
+    contentLinesSum = 0
+    longestLineLength = 0
+    averageLineLength = 0
 
     for line in lines:
         lineLen = len(line.strip())
@@ -257,13 +272,45 @@ def replace_br_with_p(body):
     body = re.sub(r'XAMP;(.+?);', r'&\1;', body)
     body = body.strip()
 
+    # # re-wrap in div tag.
+    # body = u'<div id="' +was_run_marker+ u'">\n' + body + u'</div>\n'
+    # # return body after tag_sanitizer with 'replace_br_with_p done' marker.
+    # ## marker included twice becaues the comment & id could each be
+    # ## removed by different 'clean ups'.  I hope it's less likely both
+    # ## will be.
+    # return u'<!-- ' +was_run_marker+ u' -->\n' + tag_sanitizer(body)
+
+    was_run_div = u'<div id="' + was_run_marker + '">'
+    was_run_comment = u'<!-- ' + was_run_marker + ' -->'
     # re-wrap in div tag.
-    body = u'<div id="' +was_run_marker+ u'">\n' + body + u'</div>\n'
+    if was_run_div not in body:
+        body = was_run_div + body + u'</div>\n'
     # return body after tag_sanitizer with 'replace_br_with_p done' marker.
-    ## marker included twice becaues the comment & id could each be
+    ## marker included twice because the comment & id could each be
     ## removed by different 'clean ups'.  I hope it's less likely both
     ## will be.
-    return u'<!-- ' +was_run_marker+ u' -->\n' + tag_sanitizer(body)
+    br_replaced_body = tag_sanitizer(body)
+    if not was_run_comment in br_replaced_body:
+        br_replaced_body = was_run_comment + '\n' + br_replaced_body
+    return br_replaced_body
+
+
+def replace_zwc(body):
+    logdebug(f"replace_zwc called")
+
+    # Define the zero-width characters to be removed
+    zero_width_space = chr(0x200b)
+    zero_width_non_joining = chr(0x200c)
+    zero_width_joining = chr(0x200d)
+    zero_width_non_breaking_space = chr(0xFEFF)
+    all_zero_width_chars = zero_width_space + zero_width_non_joining + zero_width_joining + zero_width_non_breaking_space
+
+    zero_width_regex_str = f'[{all_zero_width_chars}]'
+
+    zero_width_regex = re.compile(zero_width_regex_str, re.DOTALL)
+    body = re.sub(zero_width_regex, '', body)
+
+    return body
 
 def replace_style_tags(body):
     logdebug(f"replace_style_tags called")

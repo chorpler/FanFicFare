@@ -1205,7 +1205,7 @@ class Story(Requestable):
 
         # special handling for authors/authorUrls
         ## XXX make a function to handle missing URLs?
-        linkhtml="<a class='%slink' href='%s'>%s</a>"
+        linkhtml='<a class="%slink" href="%s">%s</a>'
         if self.isList('author'): # more than one author, assume multiple authorUrl too.
             htmllist=[]
             for i, auth in enumerate(self.getList('author', removeallentities, doreplacements)):
