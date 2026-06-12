@@ -317,6 +317,8 @@ def replace_style_tags(body):
 
     body = re.sub(r'<em([^>]*)>', r'<i\1>', body)
     body = re.sub(r'<strong([^>]*)>', r'<b\1>', body)
+    body = re.sub(r'</em>', r'</i>', body)
+    body = re.sub(r'</strong>', r'</b>', body)
 
     return body
 
