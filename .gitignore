@@ -25,10 +25,10 @@
 .history
 
 cleanup.sh
-FanFictionDownLoader.zip
+FanFictionDownLoader*.zip
 *.epub
 *Thumbs.db
-FanFicFare.zip
+FanFicFare*.zip
 output
 build
 dist
