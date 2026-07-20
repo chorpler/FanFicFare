@@ -253,7 +253,7 @@ def get_valid_set_options():
                'scrape_bookshelf':(['fimfiction.net'],None,boollist+['legacy']),
                'include_author_notes':(['fimfiction.net','readonlymind.com','royalroad.com','syosetu.com'],None,boollist),
                'do_update_hook':(otw_list,None,boollist),
-               'always_login':(['syosetu.com','fimfiction.net','inkbunny.net']+otw_list+base_xenforo_list+wpc_list,None,boollist),
+               'always_login':(['syosetu.com','fimfiction.net','inkbunny.net','sofurry.com']+otw_list+base_xenforo_list+wpc_list,None,boollist),
                'use_archived_author':(otw_list,None,boollist),
                'use_view_full_work':(otw_list+['fanfics.me'],None,boollist),
                'use_workskin':(otw_list,None,boollist),
@@ -299,6 +299,7 @@ def get_valid_set_options():
                'windows_eol':(None,['txt'],boollist),
 
                'include_images':(None,['epub','html'],boollist+['coveronly']),
+               'keep_img_tags':(None,['epub','html'],boollist),
                'jpg_quality':(None,['epub','html'],None),
                'additional_images':(None,['epub','html'],None),
                'grayscale_images':(None,['epub','html'],boollist),
