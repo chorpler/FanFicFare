@@ -38,7 +38,7 @@ def logdebug(s):
 was_run_marker=u'FFF_replace_br_with_p_has_been_run'
 def replace_br_with_p(body, aggressive=False):
     if was_run_marker in body and not aggressive:
-        logdebug("replace_br_with_p previously applied and aggressive mwf, skipping.")
+        logdebug("replace_br_with_p previously applied and aggressive mode not enabled, skipping.")
         return body
     logdebug(f"replace_br_with_p called, aggressive={aggressive}")
     # Ascii character (and Unicode as well) xA0 is a non-breaking space, ascii code 160.
@@ -284,7 +284,7 @@ def replace_br_with_p(body, aggressive=False):
     was_run_comment = u'<!-- ' + was_run_marker + ' -->'
     # re-wrap in div tag.
     if was_run_div not in body:
-        body = was_run_div + body + u'</div>\n'
+        body = was_run_div + u'\n' + body + u'</div>\n'
     # return body after tag_sanitizer with 'replace_br_with_p done' marker.
     ## marker included twice because the comment & id could each be
     ## removed by different 'clean ups'.  I hope it's less likely both
