@@ -326,7 +326,6 @@ class BaseOTWAdapter(BaseSiteAdapter):
         # break epub update.
         # Find the chapters:
         chapters=soup.find_all('a', href=re.compile(r'/works/'+self.story.getMetadata('storyId')+r"/chapters/\d+$"))
-        logger.debug("numChapters: (%s)"%self.story.getMetadata('numChapters'))
         if len(chapters)==1:
             self.add_chapter(self.story.getMetadata('title'),'https://'+self.host+chapters[0]['href'])
         else:
@@ -340,6 +339,12 @@ class BaseOTWAdapter(BaseSiteAdapter):
                 if newestChapter == None or chapterDate > newestChapter:
                     newestChapter = chapterDate
                     self.newestChapterNum = index
+
+        ## if the 'Chapter by Chapter' button is there, user has 'Show
+        ## the whole work by default.' on.
+        if metasoup.select_one('li.bychapter'):
+            logger.debug("Found full work already, save to use later.")
+            self.populate_whole_work(metasoup)
 
         a = metasoup.find('blockquote',{'class':'userstuff'})
         if a != None:
@@ -479,6 +484,21 @@ class BaseOTWAdapter(BaseSiteAdapter):
                      r"https://\1",url)
         return url
 
+    def populate_whole_work(self,soup):
+        self.full_work_soup = soup
+        ## AO3 has had several cases now where chapter numbers
+        ## are missing, breaking the link between
+        ## <div id=chapter-##> and Chapter ##.
+        ## But they should all still be there and in the right
+        ## order, so array[index]
+        self.full_work_chapters = self.full_work_soup.find_all('div',{'id':re.compile(r'chapter-\d+')})
+        if len(self.full_work_chapters) != self.num_chapters():
+            ## sanity check just in case.
+            self.use_full_work_soup = False
+            self.full_work_soup = None
+            logger.warning("chapter count in view_full_work(%s) disagrees with num of chapters(%s)--ending use_view_full_work"%(len(self.full_work_chapters),self.num_chapters()))
+
+
     # grab the text for an individual chapter.
     def getChapterTextNum(self, url, index):
         ## FYI: Chapter urls used to include ?view_adult=true in each
@@ -505,18 +525,7 @@ class BaseOTWAdapter(BaseSiteAdapter):
             logger.debug("USE view_full_work")
             ## Assumed view_adult=true was cookied during metadata
             if not self.full_work_soup:
-                self.full_work_soup = self.make_soup(self.get_request(self.url+"?view_full_work=true"+self.addurl.replace('?','&')))
-                ## AO3 has had several cases now where chapter numbers
-                ## are missing, breaking the link between
-                ## <div id=chapter-##> and Chapter ##.
-                ## But they should all still be there and in the right
-                ## order, so array[index]
-                self.full_work_chapters = self.full_work_soup.find_all('div',{'id':re.compile(r'chapter-\d+')})
-                if len(self.full_work_chapters) != self.num_chapters():
-                    ## sanity check just in case.
-                    self.use_full_work_soup = False
-                    self.full_work_soup = None
-                    logger.warning("chapter count in view_full_work(%s) disagrees with num of chapters(%s)--ending use_view_full_work"%(len(self.full_work_chapters),self.num_chapters()))
+                self.populate_whole_work(self.make_soup(self.get_request(self.url+"?view_full_work=true"+self.addurl.replace('?','&'))))
             whole_dl_soup = self.full_work_soup
 
         if whole_dl_soup:
