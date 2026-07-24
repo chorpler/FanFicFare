@@ -182,8 +182,8 @@ class BaseOTWAdapter(BaseSiteAdapter):
             ## <a href="#">Download</a>
             ## <ul class="expandable secondary">
             ## <li><a href="/downloads/951/Mothers%20and%20Sons.azw3?updated_at=1695162655">AZW3</a></li>
-            entireworka = chsoup.select_one('li.download ul li a')
-            m = re.match(r'/downloads/(?P<id>\d+)', entireworka['href'])
+            downloada = chsoup.select_one('li.download ul li a')
+            m = re.match(r'/downloads/(?P<id>\d+)', downloada['href'])
             if m and m.group('id'):
                 self.story.setMetadata('storyId',m.group('id'))
                 # normalized story URL.
@@ -194,10 +194,8 @@ class BaseOTWAdapter(BaseSiteAdapter):
                                                  self.getSiteDomain(),
                                                  self.getSiteExampleURLs())
 
-        metaurl = self.url+self.addurl
         url = self.url+'/navigate'+self.addurl
         logger.info("url: "+url)
-        logger.info("metaurl: "+metaurl)
 
         data = self.get_request(url)
         if '<h2 class="heading">Error 503 - Service unavailable</h2>' in data:
@@ -207,6 +205,15 @@ class BaseOTWAdapter(BaseSiteAdapter):
         if 'This site is in beta. Things may break or crash without notice.' in data:
             raise exceptions.FailedToDownload('Page failed to load, reported "This site is in beta".')
 
+        # need to log in for this one, or always_login.
+        # logger.debug(data)
+        if self.needToLoginCheck(data) or \
+                ( self.getConfig("always_login") and LOGOUT_STR not in data ):
+            self.performLogin(url,data)
+            data = self.get_request(url,usecache=False)
+
+        metaurl = self.url+self.addurl
+        logger.info("metaurl: "+metaurl)
         meta = self.get_request(metaurl)
 
         if 'This work is part of an ongoing challenge and will be revealed soon!' in meta:
@@ -229,14 +236,6 @@ class BaseOTWAdapter(BaseSiteAdapter):
 
         if "Sorry, we couldn&#x27;t find the work you were looking for." in data:
             raise exceptions.StoryDoesNotExist(self.url)
-
-        # need to log in for this one, or always_login.
-        # logger.debug(data)
-        if self.needToLoginCheck(data) or \
-                ( self.getConfig("always_login") and LOGOUT_STR not in data ):
-            self.performLogin(url,data)
-            data = self.get_request(url,usecache=False)
-            meta = self.get_request(metaurl,usecache=False)
 
         ## duplicate of check above for login-required stories that
         ## are also hidden.
