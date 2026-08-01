@@ -2480,7 +2480,7 @@ msgstr "Нет хороших историй/обновлений в скача�
 #: fff_plugin.py:2115
 msgid ""
 "Are you sure you want to continue with creating/updating this Anthology?"
-msgstr "Вы уверены, что хотите продолжить создание/обновление этой Антологии?"
+msgstr "Уверены, что хотите продолжить создание/обновление этой Антологии?"
 
 #: fff_plugin.py:2116
 msgid "Any updates that failed will <b>not</b> be included in the Anthology."
@@ -2496,7 +2496,7 @@ msgstr "Продолжить обновление этой антологии и
 
 #: fff_plugin.py:2137
 msgid "Downloading from %s"
-msgstr "Загрузка с %s"
+msgstr "Скачивание с %s"
 
 #: fff_plugin.py:2140
 msgid "Proceed with updating your library?"
@@ -2504,7 +2504,7 @@ msgstr "Продолжить обновление вашей библиотек�
 
 #: fff_plugin.py:2177
 msgid "FanFicFare download complete"
-msgstr "Загрузка FanFicFare завершена"
+msgstr "Скачивание FanFicFare завершено"
 
 #: fff_plugin.py:2177
 msgid "FanFicFare log"
