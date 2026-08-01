@@ -859,7 +859,7 @@ class BaseXenForo2ForumAdapter(BaseSiteAdapter):
                 ## which makes for extremely difficult to find replace_metadata issues.
                 tstr = re.sub(r'\s+',' ',tstr)
                 if self.getConfig('capitalize_forumtags'):
-                    tstr = title(tstr)
+                    tstr = title_case(tstr)
                 if tagname:
                     # logger.debug("Forum Tag(%s) list(%s)"%(stripHTML(tag),tagname))
                     self.story.addToList(tagname,tstr)
@@ -1105,8 +1105,8 @@ class BaseXenForo2ForumAdapter(BaseSiteAdapter):
 
 # from https://daviseford.com/blog/2017/04/27/python-string-to-title-including-punctuation.html
 # fixes englisher contractions being title cased incorrectly.
-def title(title):
-    return re.sub(r"(?<=[a-z])[\']([A-Z])", lambda x: x.group().lower(), title.title())
+def title_case(title):
+    return re.sub(r"(?:(?<=[a-z])[\']|\d)([A-Z])", lambda x: x.group().lower(), title.title())
 
 # decode obscured email addresses.  Since we're downloading fiction,
 # they're going to be fictitious and fictitious characters don't
