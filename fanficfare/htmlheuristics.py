@@ -23,9 +23,9 @@ import bs4 as bs
 
 # py2 vs py3 transition
 # noinspection PyUnresolvedReferences
-from .six import text_type as unicode
+# from .six import text_type as unicode
 # noinspection PyUnresolvedReferences
-from .six.moves import range
+# from .six.moves import range
 
 from . import HtmlTagStack as stack
 
