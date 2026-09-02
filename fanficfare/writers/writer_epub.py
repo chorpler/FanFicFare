@@ -62,17 +62,14 @@ class EpubWriter(BaseStoryWriter):
 <div class="titlepage-info">
 ''')
 
-        self.EPUB_TITLE_ENTRY = string.Template('''
-<b>${label}:</b> ${value}<br />
+        self.EPUB_TITLE_ENTRY = string.Template('''<b>${label}:</b> ${value}<br />
 ''')
 
-        self.EPUB_NO_TITLE_ENTRY = string.Template('''
-${value}<br />
+        self.EPUB_NO_TITLE_ENTRY = string.Template('''${value}<br />
 ''')
 
         self.EPUB_TITLE_PAGE_END = string.Template('''
 </div>
-
 </body>
 </html>
 ''')
