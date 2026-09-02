@@ -134,7 +134,7 @@ class ScribbleHubComAdapter(BaseSiteAdapter): # XXX
                      parameters=None,
                      usecache=True):
         try:
-            return super(getClass(), self).post_request(url, parameters, usecache)
+            return super(getClass(), self).post_request(url, parameters, usecache=usecache)
         except exceptions.HTTPErrorFFF as e:
             ## this is a fix for the scribblehub ajax request sometimes returning
             #  a 400 but only with flaresolverr. Have not been able to reproduce

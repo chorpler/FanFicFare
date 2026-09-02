@@ -474,6 +474,7 @@ class AddNewDialog(HotKeyedSizePersistedDialog):
         if url_list_text:
             self.button_box.button(QDialogButtonBox.Ok).setFocus()
 
+        self.ini_snippet_text = None
         self.populate_snip_combobox()
         self.ini_snip.setCurrentIndex(0)
 
