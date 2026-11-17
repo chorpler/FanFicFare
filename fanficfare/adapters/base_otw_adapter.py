@@ -113,6 +113,9 @@ class BaseOTWAdapter(BaseSiteAdapter):
         if self.getConfig("use_archive_transformativeworks_org"):
             logger.warning("Not doing OTW(AO3) login -- doesn't work with use_archive_transformativeworks_org")
             return False
+        if self.getConfig("use_archiveofourown_gay"):
+            logger.warning("Not doing OTW(AO3) login -- doesn't work with use_archiveofourown_gay")
+            return False
         if self.getConfig("use_browser_cache") and self.getConfig("use_browser_cache_only"):
             logger.warning("Not doing OTW(AO3) login -- doesn't work with open_pages_in_browser")
             return False
@@ -672,7 +675,9 @@ class BaseOTWAdapter(BaseSiteAdapter):
                 addurl=""
             # just to get an authenticity_token.
             data = self.get_request(url+addurl)
-            # login the session.
+            ## login the session.
+            # logger.debug(f"performLogin: '{url}'")
+            # logger.debug(data)
             self.performLogin(url,data)
             # get the list page with logged in session.
 
